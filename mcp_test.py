@@ -12,13 +12,13 @@ load_dotenv()
 google_api_key=os.getenv('google_api_key')
 tavily_api_key=os.getenv('tavily_key')
 
-llm=GeminiModel('gemini-2.0-flash', provider=GoogleGLAProvider(api_key=google_api_key))
+llm=GeminiModel('gemini-2.5-flash', provider=GoogleGLAProvider(api_key=google_api_key))
 
-server = MCPServerStdio('python', [ '-m','mcp_server_time',"--local-timezone=America/New_York"])  
+server = MCPServerStdio('npx', [ '-y','@modelcontextprotocol/server-memory'])  
 agent = Agent(llm, mcp_servers=[server])
 async def main():
     async with agent.run_mcp_servers():
-        result = await agent.run('hello')
+        result = await agent.run('what tools are available?')
         while True:
             print(f'\n{result.data}')
             user_input = input('Enter a prompt: ')
