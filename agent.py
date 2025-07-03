@@ -29,7 +29,7 @@ class Message_state:
     
     
 class MCP_Agent:
-    def __init__(self, api_keys:dict, mpc_server_urls:list = [], mpc_stdio_commands:list = []):
+    def __init__(self, llm:any, api_keys:dict, mpc_server_urls:list = [], mpc_stdio_commands:list = []):
         """
         Args:
             
@@ -42,7 +42,7 @@ class MCP_Agent:
                   'url': 'http://localhost:8000',
                   'name': 'mcp_server_1',
                   'type': 'http','SSE'
-                  'bearer_token': '1234567890' #optional or None
+                  'headers': {'Authorization': 'Bearer 1234567890'} #optional or None
                 }
               ]
             mpc_stdio_commands (list): The list of commands to use with the stdio mpc server
@@ -64,20 +64,20 @@ class MCP_Agent:
         self.mpc_stdio_commands = mpc_stdio_commands
        
         # tools
-        self.llms={'mcp_llm':OpenAIModel('gpt-4.1-mini',provider=OpenAIProvider(api_key=self.api_keys.api_keys['openai_api_key']))}
+        self.llm=llm
         
         
         #mpc servers
         self.mpc_servers=[]
         for mpc_server_url in self.mpc_server_urls:
             if mpc_server_url['type'] == 'http':
-                if mpc_server_url['bearer_token'] is not None:
-                    self.mpc_servers.append(MCPServerStreamableHTTP(mpc_server_url['url'], bearer_token=mpc_server_url['bearer_token']))
+                if mpc_server_url['headers'] is not None:
+                    self.mpc_servers.append(MCPServerStreamableHTTP(url=mpc_server_url['url'], headers=mpc_server_url['headers']))
                 else:
                     self.mpc_servers.append(MCPServerStreamableHTTP(mpc_server_url['url']))
             elif mpc_server_url['type'] == 'SSE':
-                if mpc_server_url['bearer_token'] is not None:
-                    self.mpc_servers.append(MCPServerSSE(mpc_server_url['url'], bearer_token=mpc_server_url['bearer_token']))
+                if mpc_server_url['headers'] is not None:
+                    self.mpc_servers.append(MCPServerSSE(url=mpc_server_url['url'], headers=mpc_server_url['headers']))
                 else:
                     self.mpc_servers.append(MCPServerSSE(mpc_server_url['url']))
         for mpc_stdio_command in self.mpc_stdio_commands:
@@ -87,7 +87,7 @@ class MCP_Agent:
         self._is_connected = False
         #agent
 
-        self.agent=Agent(self.llms['mcp_llm'],tools=[], mcp_servers=self.mpc_servers, instructions="you are a helpful assistant that can help with a wide range of tasks,\
+        self.agent=Agent(self.llm,tools=[], mcp_servers=self.mpc_servers, instructions="you are a helpful assistant that can help with a wide range of tasks,\
                           you have the current time and the user query, you can use the tools provided to you if necessary to help the user with their queries, ask how you can help the user, sometimes the user will ask you not to use the tools, in this case you should not use the tools")
         self.memory=Message_state(messages=[])
         
