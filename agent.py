@@ -52,12 +52,13 @@ class MCP_Agent:
                   'name': 'memory',
                   'command': 'npx', 'docker', 'npm', 'python'
                   'args': ['-y', '@modelcontextprotocol/server-memory']
+                  'env': {'HEADER': '1234567890'} #optional or None
                 }
               ]
 
             
         """
-        GEMINI_MODEL='gemini-2.0-flash'
+        
         self.api_keys=Api_keys(api_keys=api_keys)
         
         self.mpc_server_urls = mpc_server_urls
@@ -81,7 +82,11 @@ class MCP_Agent:
                 else:
                     self.mpc_servers.append(MCPServerSSE(mpc_server_url['url']))
         for mpc_stdio_command in self.mpc_stdio_commands:
-            self.mpc_servers.append(MCPServerStdio(mpc_stdio_command['command'], mpc_stdio_command['args']))
+            if mpc_stdio_command['env'] is not None:
+                self.mpc_servers.append(MCPServerStdio(mpc_stdio_command['command'], mpc_stdio_command['args'], env=mpc_stdio_command['env']))
+            else:
+                self.mpc_servers.append(MCPServerStdio(mpc_stdio_command['command'], mpc_stdio_command['args']))
+
         
         self._mcp_context_manager = None
         self._is_connected = False
