@@ -14,8 +14,8 @@ llms={'mcp_llm1':OpenAIModel('gpt-4.1-mini',provider=OpenAIProvider(api_key=os.g
 api_keys={'openai_api_key':os.getenv('openai_api_key')}
 http_mcp_server_url1={'url':'https://mcp.notion.com/sse', 'name': 'mcp_server_1', 'type': 'sse', 'headers': {"Authorization":"Bearer ","Notion-Version":"2022-06-28"}}
 http_mcp_server_url2={'url':'https://mcp.notion.com/mcp', 'name': 'mcp_server_2', 'type': 'http', 'headers':{"Authorization":"Bearer ","Notion-Version":"2022-06-28"}}
-stdio_mcp_server_command={'command': 'npx', 'args': ["-y", "mcp-remote", "https://mcp.notion.com/sse"], 'env':{
-        "OPENAPI_MCP_HEADERS": "{\"Authorization\":\"Bearer \",\"Notion-Version\":\"2022-06-28\"}"
+stdio_mcp_server_command={'command': 'npx', 'args': ["-y", "mcp-remote", "https://mcp.notion.com/mcps"], 'env':{
+        "OPENAPI_MCP_HEADERS": os.getenv('mcp_header')
       }}
 
 import asyncio
@@ -35,7 +35,7 @@ class MCPClient:
         # Initialize session and client objects
         self.session: Optional[ClientSession] = None
         self.exit_stack = AsyncExitStack()
-        self.anthropic = Anthropic()
+        self.anthropic = Anthropic(api_key=os.getenv('anthropic_api_key'))
     # methods will go here
     async def connect_to_server(self, mpc_server_command: dict):
         """Connect to an MCP server

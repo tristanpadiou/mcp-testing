@@ -15,14 +15,18 @@ llms={'mcp_llm1':OpenAIModel('gpt-4.1-mini',provider=OpenAIProvider(api_key=os.g
 
 api_keys={'openai_api_key':os.getenv('openai_api_key')}
 http_mcp_server_url1={'url':os.getenv('mcp_server'), 'name': 'mcp_server_1', 'type': 'http', 'headers': None}
-http_mcp_server_url2={'url':'https://mcp.notion.com/mcp', 'name': 'mcp_server_2', 'type': 'http', 'headers':''}
-stdio_mcp_server_command={'command': 'npx', 'args': ["-y", "mcp-remote", "https://mcp.notion.com/sse"], 'env':{
-        "OPENAPI_MCP_HEADERS": ''
+http_mcp_server_url2={'url':'https://mcp.notion.com/mcp', 'name': 'mcp_server_2', 'type': 'http', 'headers':None}
+stdio_mcp_server_command={'command': 'npx', 'args': ["-y", "mcp-remote", "https://mcp.notion.com/mcp"], 'env':{
+        "OPENAPI_MCP_HEADERS": os.getenv('mcp_header')
       }}
 
 
 
-agent=MCP_Agent(llm=llms['mcp_llm3'], api_keys=api_keys,mpc_stdio_commands=[stdio_mcp_server_command])
+agent=MCP_Agent(llm=llms['mcp_llm3'],
+                 api_keys=api_keys,
+                 mpc_stdio_commands=[stdio_mcp_server_command]
+                #  mpc_server_urls=[http_mcp_server_url2]
+                 )
 
 
 async def main():
