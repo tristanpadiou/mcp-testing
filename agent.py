@@ -83,9 +83,9 @@ class MCP_Agent:
                     self.mpc_servers.append(MCPServerSSE(mpc_server_url['url']))
         for mpc_stdio_command in self.mpc_stdio_commands:
             if mpc_stdio_command['env'] is not None:
-                self.mpc_servers.append(MCPServerStdio(mpc_stdio_command['command'], mpc_stdio_command['args'], env=mpc_stdio_command['env']))
+                self.mpc_servers.append(MCPServerStdio(mpc_stdio_command['command'], mpc_stdio_command['args'], env=mpc_stdio_command['env'], timeout=60))
             else:
-                self.mpc_servers.append(MCPServerStdio(mpc_stdio_command['command'], mpc_stdio_command['args']))
+                self.mpc_servers.append(MCPServerStdio(mpc_stdio_command['command'], mpc_stdio_command['args'], timeout=60))
 
         
         self._mcp_context_manager = None
@@ -100,18 +100,37 @@ class MCP_Agent:
     async def connect(self):
         """Establish persistent connection to MCP server"""
         if not self._is_connected:
+            print("Initializing MCP server connection...")
             self._mcp_context_manager = self.agent.run_mcp_servers()
-            await self._mcp_context_manager.__aenter__()
-            self._is_connected = True
-            return "Connected to MCP server"
+            try:
+                print("Connecting to MCP server (this may take a moment on first run)...")
+                await self._mcp_context_manager.__aenter__()
+                self._is_connected = True
+                return "Connected to MCP server"
+            except Exception as e:
+                print(f"Failed to connect to MCP server: {e}")
+                # Clean up on failure
+                self._mcp_context_manager = None
+                self._is_connected = False
+                raise e
 
     async def disconnect(self):
         """Close the MCP server connection"""
         if self._is_connected and self._mcp_context_manager:
-            await self._mcp_context_manager.__aexit__(None, None, None)
-            self._is_connected = False
-            self._mcp_context_manager = None
+            try:
+                await self._mcp_context_manager.__aexit__(None, None, None)
+            except Exception as e:
+                # Log the error but continue cleanup
+                print(f"Warning: Error during MCP server disconnect: {e}")
+            finally:
+                self._is_connected = False
+                self._mcp_context_manager = None
             return "Disconnected from MCP server"
+        elif self._mcp_context_manager:
+            # Handle case where context manager exists but connection flag is wrong
+            self._mcp_context_manager = None
+            self._is_connected = False
+            return "Cleaned up MCP server resources"
     async def chat(self, query:any):
         """
         # Chat Function Documentation
@@ -164,11 +183,30 @@ class MCP_Agent:
         ```
         """
         if not self._is_connected:
-            await self.connect()
+            try:
+                await self.connect()
+            except Exception as e:
+                return f"Failed to connect to MCP server before chat: {e}"
             
-        result=await self.agent.run(query, message_history=self.memory.messages)
-        self.memory.messages=result.all_messages()
-        return result.output
+        try:
+            result=await self.agent.run(query, message_history=self.memory.messages)
+            self.memory.messages=result.all_messages()
+            return result.output
+        except Exception as e:
+            print(f"Error during chat: {e}")
+            # Try to reconnect on connection errors
+            if "connection" in str(e).lower() or "timeout" in str(e).lower():
+                print("Attempting to reconnect...")
+                self._is_connected = False
+                try:
+                    await self.connect()
+                    result=await self.agent.run(query, message_history=self.memory.messages)
+                    self.memory.messages=result.all_messages()
+                    return result.output
+                except Exception as reconnect_error:
+                    return f"Chat failed and reconnection failed: {reconnect_error}"
+            else:
+                raise e
     
     
     

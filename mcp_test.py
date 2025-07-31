@@ -1,15 +1,7 @@
-from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIModel
-from pydantic_ai.providers.openai import OpenAIProvider
-from pydantic_ai.models.google import GoogleModel
-from pydantic_ai.providers.google import GoogleProvider
-from pydantic_ai.mcp import MCPServerStdio,MCPServerStreamableHTTP,MCPServerSSE
+
 from dotenv import load_dotenv
 import os
 load_dotenv()
-
-llms={'mcp_llm1':OpenAIModel('gpt-4.1-mini',provider=OpenAIProvider(api_key=os.getenv('openai_api_key'))),
-      'mcp_llm2':GoogleModel('gemini-2.5-flash', provider=GoogleProvider(api_key=os.getenv('google_api_key')))}
 
 api_keys={'openai_api_key':os.getenv('openai_api_key')}
 http_mcp_server_url1={'url':'https://mcp.notion.com/sse', 'name': 'mcp_server_1', 'type': 'sse', 'headers': {"Authorization":"Bearer ","Notion-Version":"2022-06-28"}}
@@ -24,6 +16,8 @@ from contextlib import AsyncExitStack
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+from mcp.client.streamable_http import streamablehttp_client
+from mcp.client.sse import sse_client
 
 from anthropic import Anthropic
 from dotenv import load_dotenv
